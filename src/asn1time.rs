@@ -258,26 +258,26 @@ impl GeneralizedTime {
                     let offset_seconds = (offset_hours * 3600 + offset_minutes * 60) as i32;
 
                     Zone::Offset(if east {
-                        chrono::FixedOffset::east(offset_seconds)
+                        chrono::FixedOffset::east_opt(offset_seconds).unwrap()
                     } else {
-                        chrono::FixedOffset::west(offset_seconds)
+                        chrono::FixedOffset::west_opt(offset_seconds).unwrap()
                     })
                 }
             }
         };
 
-        if let chrono::LocalResult::Single(dt) = chrono::Utc.ymd_opt(year, month, day) {
-            if let Some(dt) = dt.and_hms_nano_opt(hour, minute, second, nano) {
+        if let chrono::LocalResult::Single(dt) = chrono::Utc.with_ymd_and_hms(year, month, day, hour, minute, second) {
+            if let Some(dt) = dt.with_nanosecond(nano) {
                 Ok(Self {
                     time: dt.naive_utc(),
                     fractional_seconds: allow_fractional_seconds,
                     timezone,
                 })
             } else {
-                Err(source.content_err("invalid time value"))
+                Err(source.content_err("invalid nano value"))
             }
         } else {
-            Err(source.content_err("invalid date value"))
+            Err(source.content_err("invalid date time value"))
         }
     }
 }
@@ -299,9 +299,9 @@ impl ToString for GeneralizedTime {
 impl From<GeneralizedTime> for chrono::DateTime<chrono::Utc> {
     fn from(gt: GeneralizedTime) -> Self {
         match gt.timezone {
-            Zone::Utc => chrono::DateTime::<chrono::Utc>::from_utc(gt.time, chrono::Utc),
+            Zone::Utc => chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(gt.time, chrono::Utc),
             Zone::Offset(offset) => {
-                chrono::DateTime::<chrono::Utc>::from_utc(gt.time.add(offset), chrono::Utc)
+                chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(gt.time.add(offset), chrono::Utc)
             }
         }
     }
@@ -373,14 +373,10 @@ impl UtcTime {
             return Err(prim.content_err("UTCTime must end with `Z`"));
         }
 
-        if let chrono::LocalResult::Single(dt) = chrono::Utc.ymd_opt(year, month, day) {
-            if let Some(dt) = dt.and_hms_opt(hour, minute, second) {
-                Ok(Self(dt))
-            } else {
-                Err(prim.content_err("invalid hour minute second value"))
-            }
+        if let chrono::LocalResult::Single(dt) = chrono::Utc.with_ymd_and_hms(year, month, day, hour, minute, second) {
+            Ok(Self(dt))
         } else {
-            Err(prim.content_err("invalid year month day value"))
+            Err(prim.content_err("invalid year month day hour minute second value"))
         }
     }
 }
