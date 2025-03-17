@@ -47,7 +47,7 @@ version = "0.4"
 version = "1.0"
 
 [dependencies.ring]
-version = "0.16"
+version = "0.17.14"
 
 [dependencies.signature]
 version = "1.3"

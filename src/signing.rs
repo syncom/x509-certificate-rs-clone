@@ -108,7 +108,7 @@ impl Signer<Signature> for InMemorySigningKeyPair {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, signature::Error> {
         match self {
             Self::Rsa(key, _) => {
-                let mut signature = vec![0; key.public_modulus_len()];
+                let mut signature = vec![0; key.public().modulus_len()];
 
                 key.sign(
                     &ringsig::RSA_PKCS1_SHA256,
@@ -217,6 +217,8 @@ impl InMemorySigningKeyPair {
 
         let algorithm = KeyAlgorithm::try_from(&key.private_key_algorithm)?;
 
+        let rng = SystemRandom::new();
+
         // self.key_algorithm() assumes a 1:1 mapping between KeyAlgorithm and our enum
         // variants. If you change this, change that function as well.
         match algorithm {
@@ -226,7 +228,7 @@ impl InMemorySigningKeyPair {
                 Ok(Self::Rsa(pair, key.private_key.into_bytes().to_vec()))
             }
             KeyAlgorithm::Ecdsa(curve) => {
-                let pair = ringsig::EcdsaKeyPair::from_pkcs8(curve.into(), data.as_ref())?;
+                let pair = ringsig::EcdsaKeyPair::from_pkcs8(curve.into(), data.as_ref(), &rng)?;
 
                 Ok(Self::Ecdsa(pair, curve, data.as_ref().to_vec()))
             }
