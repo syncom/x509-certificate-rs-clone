@@ -156,8 +156,8 @@ impl From<der::Error> for X509CertificateError {
 }
 
 impl From<ring::error::KeyRejected> for X509CertificateError {
-    fn from(e: ring::error::KeyRejected) -> Self {
-        Self::PrivateKeyRejected(e.description_())
+    fn from(_e: ring::error::KeyRejected) -> Self {
+        Self::PrivateKeyRejected("Private key rejected")
     }
 }
 
